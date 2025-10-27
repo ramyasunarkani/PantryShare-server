@@ -26,7 +26,7 @@ app.use('/reservations',reservationRoute);
 (async () => {
   try {
     await connectDB();
-    app.listen(3000, () => {
+    app.listen(process.env.PORT, () => {
       console.log('Server running on port 3000');
     });
   } catch (error) {
