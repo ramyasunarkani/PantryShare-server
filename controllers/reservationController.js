@@ -102,19 +102,27 @@ const getUserReservations = async (req, res) => {
 };
 
 
-// ✅ Get all reservations for items owned by logged-in sharer
 const getOwnerReservations = async (req, res) => {
   try {
     const userId = req.user.userId;
-
-    // Find all items shared by the user
     const items = await Item.find({ sharerId: userId });
     const itemIds = items.map((item) => item._id);
 
     const reservations = await ReservedItem.find({ itemId: { $in: itemIds } })
-      .populate("userId", "fullName email photoURL")
-      .populate("itemId", "title description imageUrl expiryDate")
-      .sort({ createdAt: -1 });
+  .populate("userId", "fullName email photoURL") 
+  .populate({
+    path: "itemId",
+    select: "title description imageUrl expiryDate sharerId reservedBy",
+    populate: [
+      { path: "sharerId", select: "fullName email photoURL" },
+      { path: "reservedBy", select: "fullName email photoURL" },
+    ],
+  })
+  .sort({ createdAt: -1 });
+
+console.log(reservations);
+
+
 
     res.status(200).json(reservations);
   } catch (err) {

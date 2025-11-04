@@ -20,17 +20,14 @@ const createItem = async (req, res) => {
       sharerId: req.user.userId,
     };
 
-    // ✅ Handle image upload like User Controller
     if (req.file) {
-      console.log('iiiiiiiiii')
-      const fileBuffer = fs.readFileSync(req.file.path); // read file from disk
+      const fileBuffer = fs.readFileSync(req.file.path); 
       const response = await imagekit.upload({
         file: fileBuffer,
         fileName: req.file.originalname,
         folder: "/items",
       });
 
-      // Optimize image URL
       newItemData.imageUrl = imagekit.url({
         path: response.filePath,
         transformation: [
@@ -48,6 +45,22 @@ const createItem = async (req, res) => {
   } catch (error) {
     console.error("Error adding item:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const getItemById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const item = await Item.findById(id).populate("sharerId", "fullName email photoURL");
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    res.status(200).json(item);
+  } catch (error) {
+    console.error("Error fetching item by ID:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -92,7 +105,8 @@ const updateItem = async (req, res) => {
 
 const getAllItems = async (req, res) => {
   try {
-    const items = await Item.find().populate("sharerId", "fullName email photoURL");
+    const userId = req.user.userId; 
+    const items = await Item.find({ sharerId: { $ne: userId }}).populate("sharerId", "fullName email photoURL");
     res.status(200).json(items);
   } catch (error) {
     console.error("Error fetching items:", error);
@@ -130,4 +144,4 @@ const deleteItem = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
- module.exports={createItem,updateItem,getAllItems,getUserItems,deleteItem}
+ module.exports={createItem,updateItem,getAllItems,getUserItems,deleteItem,getItemById}
