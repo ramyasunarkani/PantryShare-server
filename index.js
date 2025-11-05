@@ -9,6 +9,8 @@ const userRoute = require('./routes/userRoute');
 const itemRoute = require('./routes/itemRoute');
 const reservationRoute = require('./routes/reservationRoutes');
 const chatRoute = require('./routes/chatRoutes');
+const chatbotRoutes = require("./routes/chatbot");
+
 
 const chatSocket = require('./socket/chatSocket');
 
@@ -22,6 +24,8 @@ app.use('/auth', userRoute);
 app.use('/items', itemRoute);
 app.use('/reservations', reservationRoute);
 app.use('/chats', chatRoute);
+app.use("/chatbot", chatbotRoutes);
+
 
 const server = http.createServer(app);
 const io = new Server(server, {

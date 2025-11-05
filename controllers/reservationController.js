@@ -119,11 +119,6 @@ const getOwnerReservations = async (req, res) => {
     ],
   })
   .sort({ createdAt: -1 });
-
-console.log(reservations);
-
-
-
     res.status(200).json(reservations);
   } catch (err) {
     console.error(err);
