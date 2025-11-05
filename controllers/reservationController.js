@@ -1,7 +1,7 @@
 const ReservedItem = require("../models/ReservedItem");
 const Item = require("../models/Item");
-
-
+const sendEmail = require("../config/sendEmail");
+const User = require("../models/User");
 
 const reserveItem = async (req, res) => {
   try {
@@ -36,8 +36,25 @@ const reserveItem = async (req, res) => {
     item.reservedBy = userId;
     await item.save();
 
+    const owner = await User.findById(item.sharerId);
+    const reservingUser = await User.findById(userId);
+
+    if (owner && owner.email) {
+      const subject = "Your item has been reserved!";
+      const text = `
+Hello ${owner.name},
+
+Good news! Your item "${item.title}" has just been reserved by ${reservingUser.name}.
+
+Please log in to your Pantry Share dashboard to view details and contact the user.
+
+- Pantry Share Team
+      `;
+      await sendEmail(owner.email, subject, text);
+    }
+
     res.status(201).json({
-      message: "Item reserved successfully!",
+      message: "Item reserved successfully! Email sent to owner.",
       reservation: newReservation,
     });
   } catch (err) {
@@ -50,13 +67,17 @@ const reserveItem = async (req, res) => {
 };
 
 
+
 const updateReservationStatus = async (req, res) => {
   try {
     const { reservationId } = req.params;
     const { status } = req.body;
     const userId = req.user.userId;
 
-    const reservation = await ReservedItem.findById(reservationId).populate("itemId");
+    const reservation = await ReservedItem.findById(reservationId)
+      .populate("itemId")
+      .populate("userId");
+
     if (!reservation) return res.status(404).json({ message: "Reservation not found" });
 
     if (reservation.itemId.sharerId.toString() !== userId) {
@@ -66,12 +87,33 @@ const updateReservationStatus = async (req, res) => {
     reservation.status = status;
     await reservation.save();
 
+    const reservingUser = reservation.userId;
+    const item = reservation.itemId;
+
+    if (reservingUser && reservingUser.email) {
+      const subject = `Your Reservation Status: ${status}`;
+      const text = `
+Hi ${reservingUser.fullName},
+
+Your reservation for the item "${item.title}" has been ${status.toLowerCase()} by the owner.
+
+Item Details:
+- Title: ${item.title}
+- Description: ${item.description}
+
+Thank you for using Pantry Share!
+- Pantry Share Team
+      `;
+
+      await sendEmail(reservingUser.email, subject, text);
+    }
+
     res.status(200).json({
-      message: `Reservation ${status.toLowerCase()} successfully.`,
+      message: `Reservation ${status.toLowerCase()} successfully and email sent to user.`,
       reservation,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error in updateReservationStatus:", err);
     res.status(500).json({ message: "Failed to update reservation status", error: err.message });
   }
 };
